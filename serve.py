@@ -1,4 +1,5 @@
 import http.server
+import json
 import os
 
 import rendering
@@ -24,12 +25,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-type','text/plain')
             self.end_headers()
             self.wfile.write('File "{}" not found'.format(file_path).encode('utf-8'))
+            return
 
-        else:
-            self.send_response(200)
-            self.send_header('Content-type','text/html')
+        try:
+            source_json = json.loads(source)
+
+        except json.decoder.JSONDecodeError:
+            self.send_response(500)
+            self.send_header('Content-type','text/plain')
             self.end_headers()
-            self.wfile.write(rendering.render(source).encode('utf-8'))
+            self.wfile.write('Invalid file "{}"'.format(file_path).encode('utf-8'))
+            return
+
+        self.send_response(200)
+        self.send_header('Content-type','text/html')
+        self.end_headers()
+        self.wfile.write(
+            rendering.as_page(rendering.render(source_json)).encode('utf-8')
+        )
 
 
 if __name__ == '__main__':
