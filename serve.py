@@ -9,8 +9,39 @@ EXAMPLES_DIRECTORY = os.path.join(
     'examples',
 )
 
+LITERALS = set([
+    '/framework.js',
+    '/script.js',
+    '/style.css',
+])
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == '/':
+            with open('index.html', 'r') as f:
+                source = f.read()
+
+            self.send_response(200)
+            self.send_header('Content-type','text/html;charset=utf-8')
+            self.end_headers()
+            self.wfile.write(source.encode('utf-8'))
+            return
+
+        elif self.path in LITERALS:
+            with open(self.path[1:], 'r') as f:
+                source = f.read()
+
+            self.send_response(200)
+
+            if self.path.endswith('.js'):
+                self.send_header('Content-type','text/javascript;charset=utf-8')
+            else:
+                self.send_header('Content-type','text/html;charset=utf-8')
+
+            self.end_headers()
+            self.wfile.write(source.encode('utf-8'))
+            return
+
         file_path = os.path.join(
             EXAMPLES_DIRECTORY,
             self.path[1:] if self.path.startswith('/') else self.path,
@@ -22,7 +53,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         except FileNotFoundError:
             self.send_response(404)
-            self.send_header('Content-type','text/plain')
+            self.send_header('Content-type','text/plain;charset=utf-8')
             self.end_headers()
             self.wfile.write('File "{}" not found'.format(file_path).encode('utf-8'))
             return
@@ -32,13 +63,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         except json.decoder.JSONDecodeError:
             self.send_response(500)
-            self.send_header('Content-type','text/plain')
+            self.send_header('Content-type','text/plain;charset=utf-8')
             self.end_headers()
             self.wfile.write('Invalid file "{}"'.format(file_path).encode('utf-8'))
             return
 
         self.send_response(200)
-        self.send_header('Content-type','text/html')
+        self.send_header('Content-type','text/html;charset=utf-8')
         self.end_headers()
         self.wfile.write(
             rendering.as_page(rendering.render(source_json)).encode('utf-8')
